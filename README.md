@@ -128,6 +128,6 @@ Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Programs\m3claude"
 Remove-Item -Recurse -Force "$env:APPDATA\m3claude"
 ```
 
-## Credits
+<!-- ## Credits
 
-Structure and behavior adapted from [RafiulM/deepclaude](https://github.com/RafiulM/deepclaude). License: MIT.
+Structure and behavior adapted from [RafiulM/deepclaude](https://github.com/RafiulM/deepclaude). License: MIT. -->
