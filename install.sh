@@ -15,8 +15,10 @@ mkdir -p "$BIN_DIR"
 echo "Installing $CMD_NAME to $BIN_DIR ..."
 if command -v curl >/dev/null 2>&1; then
   curl -fsSL "$REPO_RAW/$CMD_NAME" -o "$BIN_DIR/$CMD_NAME"
+  curl -fsSL "$REPO_RAW/proxy.py"  -o "$BIN_DIR/proxy.py"
 elif command -v wget >/dev/null 2>&1; then
   wget -qO "$BIN_DIR/$CMD_NAME" "$REPO_RAW/$CMD_NAME"
+  wget -qO "$BIN_DIR/proxy.py"  "$REPO_RAW/proxy.py"
 else
   echo "Need curl or wget." >&2
   exit 1

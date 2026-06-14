@@ -2,7 +2,20 @@
 
 One-line installer to run [Claude Code](https://docs.claude.com/en/docs/claude-code) against [TokenRouter](https://tokenrouter.com)'s API with model **MiniMax-M3**. Paste your key once, run anytime.
 
-> Requires the `claude` CLI to already be installed ([instructions](https://docs.claude.com/en/docs/claude-code)).
+> **Prerequisites**
+> - [Claude Code CLI](https://docs.claude.com/en/docs/claude-code) (`claude` on `PATH`)
+> - **Python 3** (`python3` on `PATH`) — needed for the local translation proxy
+> - A TokenRouter API key
+
+## How it works
+
+TokenRouter exposes an **OpenAI-compatible** API; Claude Code speaks the **Anthropic** protocol. `m3claude` runs a tiny local proxy (`proxy.py`, stdlib-only Python) that translates between the two:
+
+```
+claude CLI  --Anthropic/HTTP-->  proxy.py (127.0.0.1:random)  --OpenAI/HTTP-->  api.tokenrouter.com/v1
+```
+
+The wrapper starts the proxy in the background, points `ANTHROPIC_BASE_URL` at it, and kills the proxy when `claude` exits.
 
 ## Install (one command)
 
@@ -74,7 +87,7 @@ It is stored in plaintext on your machine — anyone with access to your user ac
 ## What it sets
 
 ```bash
-ANTHROPIC_BASE_URL="https://api.tokenrouter.com/v1"
+ANTHROPIC_BASE_URL="http://127.0.0.1:<random-port>"   # the local proxy
 ANTHROPIC_AUTH_TOKEN="<your TokenRouter API key>"
 ANTHROPIC_MODEL="MiniMax-M3"
 ANTHROPIC_DEFAULT_OPUS_MODEL="MiniMax-M3"
@@ -88,14 +101,23 @@ Then runs: `claude --dangerously-skip-permissions "$@"`
 
 > **Note:** `--dangerously-skip-permissions` lets Claude run tools without per-action approval prompts. Convenient, but it means commands and file edits execute without asking. Use it in a directory you trust.
 
-> **Protocol note:** This wrapper assumes TokenRouter's `/v1` endpoint accepts Anthropic-protocol requests (the format `claude` CLI sends). If it only accepts OpenAI Chat Completions, requests will fail — a translation proxy would be required.
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| `python3 not found on PATH` | Python 3 missing | `brew install python3` (macOS), `apt install python3` (Debian/Ubuntu), or python.org installer (Windows) |
+| `proxy.py not found` | Stale install — wrapper installed but not the proxy | Re-run the install command |
+| `Translation proxy failed to start` | Proxy crashed on boot (bad key, network, etc.) | The wrapper prints the proxy's log to stderr; check there |
+| `claude` errors with `401` or `api_error` from TokenRouter | Invalid key, or key not authorized for `MiniMax-M3` | Verify the key at your TokenRouter dashboard, then `m3claude change-key` |
+| `claude` errors with `404`/`not_found_error` | TokenRouter has no `/chat/completions` endpoint, or the model name is wrong | Confirm the model name is exactly `MiniMax-M3` and that TokenRouter is OpenAI-compatible |
+| Streaming responses hang or look broken | TokenRouter SSE format differs from OpenAI's | Open an issue with the response payload |
 
 ## Uninstall
 
 **macOS / Linux**
 
 ```bash
-rm ~/.local/bin/m3claude
+rm ~/.local/bin/m3claude ~/.local/bin/proxy.py
 rm -rf ~/.config/m3claude
 ```
 

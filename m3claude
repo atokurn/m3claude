@@ -138,7 +138,78 @@ if ! command -v claude >/dev/null 2>&1; then
   exit 127
 fi
 
-export ANTHROPIC_BASE_URL="https://api.tokenrouter.com/v1"
+# Start the local translation proxy in the background.
+# TokenRouter exposes an OpenAI-compatible API; claude CLI speaks Anthropic.
+# proxy.py bridges the two. Install: re-run install.sh, or place proxy.py
+# next to this script.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || true)"
+if [ -z "$SCRIPT_DIR" ] || [ ! -f "$SCRIPT_DIR/proxy.py" ]; then
+  SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")" 2>/dev/null && pwd || true)"
+fi
+PROXY_SCRIPT="${SCRIPT_DIR:-.}/proxy.py"
+
+if ! command -v python3 >/dev/null 2>&1; then
+  say "python3 not found on PATH."
+  say "m3claude needs Python 3 to run the translation proxy."
+  say "Install: brew install python3 (macOS) or your distro's package manager."
+  exit 127
+fi
+
+if [ ! -f "$PROXY_SCRIPT" ]; then
+  say "proxy.py not found at $PROXY_SCRIPT"
+  say "Re-run the installer:"
+  say "  curl -fsSL https://raw.githubusercontent.com/atokurn/m3claude/main/install.sh | bash"
+  exit 1
+fi
+
+PROXY_PORT_FILE="$(mktemp -t m3claude-proxy-port)"
+PROXY_LOG="$(mktemp -t m3claude-proxy-log)"
+
+M3CLAUDE_PORT=0 \
+M3CLAUDE_HOST=127.0.0.1 \
+M3CLAUDE_PORT_FILE="$PROXY_PORT_FILE" \
+M3CLAUDE_UPSTREAM="https://api.tokenrouter.com" \
+TOKENROUTER_API_KEY="$KEY" \
+  python3 "$PROXY_SCRIPT" >"$PROXY_LOG" 2>&1 &
+PROXY_PID=$!
+
+# Wait up to ~5s for the proxy to write its port file.
+PROXY_PORT=""
+for _ in $(seq 1 25); do
+  if [ -f "$PROXY_PORT_FILE" ]; then
+    PROXY_PORT="$(tr -d '[:space:]' < "$PROXY_PORT_FILE" 2>/dev/null || true)"
+    if [ -n "$PROXY_PORT" ]; then
+      break
+    fi
+  fi
+  if ! kill -0 "$PROXY_PID" 2>/dev/null; then
+    say "Translation proxy exited before becoming ready. Log:"
+    sed 's/^/  /' "$PROXY_LOG" >&2 || true
+    rm -f "$PROXY_PORT_FILE" "$PROXY_LOG"
+    exit 1
+  fi
+  sleep 0.2
+done
+
+if [ -z "$PROXY_PORT" ] || ! kill -0 "$PROXY_PID" 2>/dev/null; then
+  say "Translation proxy failed to start. Log:"
+  sed 's/^/  /' "$PROXY_LOG" >&2 || true
+  kill "$PROXY_PID" 2>/dev/null || true
+  rm -f "$PROXY_PORT_FILE" "$PROXY_LOG"
+  exit 1
+fi
+
+# Kill the proxy when claude exits (any cause).
+cleanup() {
+  if [ -n "${PROXY_PID:-}" ] && kill -0 "$PROXY_PID" 2>/dev/null; then
+    kill "$PROXY_PID" 2>/dev/null || true
+    wait "$PROXY_PID" 2>/dev/null || true
+  fi
+  rm -f "${PROXY_PORT_FILE:-}" "${PROXY_LOG:-}" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
+
+export ANTHROPIC_BASE_URL="http://127.0.0.1:$PROXY_PORT"
 export ANTHROPIC_AUTH_TOKEN="$KEY"
 export ANTHROPIC_MODEL="MiniMax-M3"
 export ANTHROPIC_DEFAULT_OPUS_MODEL="MiniMax-M3"

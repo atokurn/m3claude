@@ -11,6 +11,7 @@ New-Item -ItemType Directory -Force -Path $Dest | Out-Null
 
 Write-Host "Installing m3claude to $Dest ..."
 Invoke-WebRequest -UseBasicParsing "$Repo/m3claude.ps1" -OutFile (Join-Path $Dest 'm3claude.ps1')
+Invoke-WebRequest -UseBasicParsing "$Repo/proxy.py"      -OutFile (Join-Path $Dest 'proxy.py')
 
 # A .cmd shim so `m3claude` works from cmd.exe and PowerShell alike.
 $shim = @'
