@@ -2,11 +2,11 @@
 #
 # m3claude installer.
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/YOUR-USERNAME/m3claude/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/atokurn/m3claude/main/install.sh | bash
 #
 set -euo pipefail
 
-REPO_RAW="https://raw.githubusercontent.com/YOUR-USERNAME/m3claude/main"
+REPO_RAW="https://raw.githubusercontent.com/atokurn/m3claude/main"
 CMD_NAME="m3claude"
 BIN_DIR="${M3CLAUDE_BIN_DIR:-$HOME/.local/bin}"
 

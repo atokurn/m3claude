@@ -1,10 +1,10 @@
 # m3claude installer for Windows (PowerShell).
 # Usage:
-#   irm https://raw.githubusercontent.com/YOUR-USERNAME/m3claude/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/atokurn/m3claude/main/install.ps1 | iex
 
 $ErrorActionPreference = 'Stop'
 
-$Repo = 'https://raw.githubusercontent.com/YOUR-USERNAME/m3claude/main'
+$Repo = 'https://raw.githubusercontent.com/atokurn/m3claude/main'
 $Dest = Join-Path $env:LOCALAPPDATA 'Programs\m3claude'
 
 New-Item -ItemType Directory -Force -Path $Dest | Out-Null

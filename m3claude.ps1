@@ -79,7 +79,7 @@ if ($args.Count -ge 1) {
     }
     '^(update|--update|upgrade|--upgrade)$' {
       Write-Host 'Updating m3claude to the latest version...'
-      irm 'https://raw.githubusercontent.com/YOUR-USERNAME/m3claude/main/install.ps1' | iex
+      irm 'https://raw.githubusercontent.com/atokurn/m3claude/main/install.ps1' | iex
       exit 0
     }
   }

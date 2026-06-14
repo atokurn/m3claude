@@ -105,7 +105,7 @@ case "${1:-}" in
     ;;
   update|--update|upgrade|--upgrade)
     say "Updating m3claude to the latest version..."
-    curl -fsSL "https://raw.githubusercontent.com/YOUR-USERNAME/m3claude/main/install.sh" | bash
+    curl -fsSL "https://raw.githubusercontent.com/atokurn/m3claude/main/install.sh" | bash
     exit $?
     ;;
 esac

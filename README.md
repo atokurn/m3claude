@@ -9,7 +9,7 @@ One-line installer to run [Claude Code](https://docs.claude.com/en/docs/claude-c
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR-USERNAME/m3claude/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/atokurn/m3claude/main/install.sh | bash
 ```
 
 Installs a single `m3claude` script into `~/.local/bin`. If that directory isn't on your `PATH`, the installer prints the line to add.
@@ -17,7 +17,7 @@ Installs a single `m3claude` script into `~/.local/bin`. If that directory isn't
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/YOUR-USERNAME/m3claude/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/atokurn/m3claude/main/install.ps1 | iex
 ```
 
 Installs `m3claude` into `%LOCALAPPDATA%\Programs\m3claude` and adds it to your user `PATH`. Open a **new** terminal afterward.
