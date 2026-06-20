@@ -27,6 +27,52 @@ chmod +x "$BIN_DIR/$CMD_NAME"
 
 echo "Installed: $BIN_DIR/$CMD_NAME"
 
+# Ensure auto-compact is explicitly enabled for m3claude sessions.
+# TokenRouter / MiniMax-M3 benefits from context summarization when the
+# context window fills; the Claude Code default is also true, but writing
+# it explicitly makes the behavior obvious and survives upstream default
+# changes. Honored as-is: users can still set DISABLE_AUTO_COMPACT=1 in
+# their environment to override.
+CLAUDE_SETTINGS_DIR="${CLAUDE_SETTINGS_DIR:-$HOME/.claude}"
+CLAUDE_SETTINGS_FILE="$CLAUDE_SETTINGS_DIR/settings.json"
+mkdir -p "$CLAUDE_SETTINGS_DIR"
+chmod 700 "$CLAUDE_SETTINGS_DIR" 2>/dev/null || true
+
+write_auto_compact() {
+  local file="$1"
+  if command -v jq >/dev/null 2>&1; then
+    local current='{}'
+    [ -f "$file" ] && current="$(cat "$file" 2>/dev/null || echo '{}')"
+    if printf '%s' "$current" | jq --argjson ac true '. + {autoCompactEnabled: $ac}' > "$file.tmp" 2>/dev/null; then
+      mv "$file.tmp" "$file"
+    else
+      rm -f "$file.tmp"
+      return 1
+    fi
+  else
+    # Fallback: parse with python3 (already required by m3claude runtime).
+    python3 - "$file" <<'PY'
+import json, os, sys
+p = sys.argv[1]
+try:
+    with open(p, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    if not isinstance(data, dict):
+        data = {}
+except (FileNotFoundError, json.JSONDecodeError):
+    data = {}
+data['autoCompactEnabled'] = True
+os.makedirs(os.path.dirname(p), exist_ok=True)
+with open(p, 'w', encoding='utf-8') as f:
+    json.dump(data, f, indent=2)
+    f.write('\n')
+PY
+  fi
+  chmod 600 "$file" 2>/dev/null || true
+}
+write_auto_compact "$CLAUDE_SETTINGS_FILE"
+echo "Auto-compact enabled in $CLAUDE_SETTINGS_FILE"
+
 case ":$PATH:" in
   *":$BIN_DIR:"*)
     echo "Ready. Run: $CMD_NAME"

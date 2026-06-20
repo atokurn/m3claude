@@ -101,6 +101,18 @@ Then runs: `claude --dangerously-skip-permissions "$@"`
 
 > **Note:** `--dangerously-skip-permissions` lets Claude run tools without per-action approval prompts. Convenient, but it means commands and file edits execute without asking. Use it in a directory you trust.
 
+## Auto-compact
+
+The installer writes `{"autoCompactEnabled": true}` into your `~/.claude/settings.json`
+(macOS/Linux) or `%USERPROFILE%\.claude\settings.json` (Windows). This makes
+Claude Code's automatic context-window compaction explicit and stable across
+upstream default changes. Inside a session you can still trigger it manually
+with `/compact`, or toggle via `/config`.
+
+To disable auto-compact for `m3claude` runs, set the env var
+`DISABLE_AUTO_COMPACT=1` before invoking `m3claude` — the env var is honored
+as-is and is the official Claude Code override.
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
@@ -119,6 +131,16 @@ Then runs: `claude --dangerously-skip-permissions "$@"`
 ```bash
 rm ~/.local/bin/m3claude ~/.local/bin/proxy.py
 rm -rf ~/.config/m3claude
+# Optional: remove the auto-compact entry written by the installer
+python3 -c "import json,os; p=os.path.expanduser('~/.claude/settings.json')
+try:
+    d=json.load(open(p))
+except Exception:
+    d={}
+if isinstance(d,dict) and d.get('autoCompactEnabled') is True and len(d)==1:
+    os.remove(p)
+elif isinstance(d,dict):
+    d.pop('autoCompactEnabled', None); open(p,'w').write(json.dumps(d, indent=2))"
 ```
 
 **Windows (PowerShell)**
@@ -126,6 +148,16 @@ rm -rf ~/.config/m3claude
 ```powershell
 Remove-Item -Recurse -Force "$env:LOCALAPPDATA\Programs\m3claude"
 Remove-Item -Recurse -Force "$env:APPDATA\m3claude"
+# Optional: remove the auto-compact entry written by the installer
+$path = Join-Path $env:USERPROFILE '.claude\settings.json'
+if (Test-Path $path) {
+  $j = Get-Content -Raw $path | ConvertFrom-Json -ErrorAction SilentlyContinue
+  if ($j -and $j.PSObject.Properties['autoCompactEnabled']) {
+    $j.PSObject.Properties.Remove('autoCompactEnabled')
+    if ($j.PSObject.Properties.Count -eq 0) { Remove-Item $path }
+    else { $j | ConvertTo-Json | Set-Content $path }
+  }
+}
 ```
 
 <!-- ## Credits

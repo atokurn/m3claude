@@ -31,4 +31,43 @@ if ($userPath -notlike "*$Dest*") {
   Write-Host 'Open a NEW terminal for it to take effect.'
 }
 
+# Ensure auto-compact is explicitly enabled for m3claude sessions.
+# TokenRouter / MiniMax-M3 benefits from context summarization when the
+# context window fills; the Claude Code default is also true, but writing
+# it explicitly makes the behavior obvious and survives upstream default
+# changes. Honored as-is: users can still set DISABLE_AUTO_COMPACT=1 in
+# their environment to override.
+$ClaudeSettingsDir  = Join-Path $env:USERPROFILE '.claude'
+$ClaudeSettingsFile = Join-Path $ClaudeSettingsDir 'settings.json'
+New-Item -ItemType Directory -Force -Path $ClaudeSettingsDir | Out-Null
+
+function Set-AutoCompact {
+  param([string]$Path)
+  $data = @{}
+  if (Test-Path $Path) {
+    try {
+      $existing = Get-Content -Raw -Path $Path | ConvertFrom-Json -ErrorAction Stop
+      if ($existing -is [pscustomobject]) {
+        foreach ($prop in $existing.PSObject.Properties) {
+          $data[$prop.Name] = $prop.Value
+        }
+      }
+    } catch {
+      $data = @{}
+    }
+  }
+  $data['autoCompactEnabled'] = $true
+  ($data | ConvertTo-Json -Depth 10) | Set-Content -Path $Path -Encoding UTF8
+  try {
+    $acl = New-Object System.Security.AccessControl.FileSecurity
+    $acl.SetAccessRuleProtection($true, $false)
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+      "$env:USERDOMAIN\$env:USERNAME", 'FullControl', 'Allow')
+    $acl.AddAccessRule($rule)
+    Set-Acl -Path $Path -AclObject $acl
+  } catch { }
+}
+Set-AutoCompact -Path $ClaudeSettingsFile
+Write-Host "Auto-compact enabled in $ClaudeSettingsFile"
+
 Write-Host 'Installed. Run: m3claude'
